@@ -6,7 +6,9 @@
 #include <string>
 #include <stdarg.h>
 #include <pthread.h>
-// #include "block_queue.h"
+#include "block_queue.h"
+
+using namespace std;
 
 class Log {
 public:
@@ -30,10 +32,16 @@ public:
 private:
     Log();
     virtual ~Log();
-    void *async_write_log() {
+
+    void* async_write_log() {
         string single_log;
+
         // 从阻塞队列中取出一个日志 string，写入文件
-        while ()
+        while (m_log_queue->pop(single_log)) {
+            m_mutex.lock();
+            fputs(single_log.c_str(), m_fp);
+            m_mutex.unlock();
+        }
     }
 
 private:
@@ -45,9 +53,9 @@ private:
     int m_today;        // 因为按天分类，记录当前时间是哪一天
     FILE* m_fp;         // 打开 log 的文件指针
     char* m_buf;
-    // block_queue<string>* m_log_queue;   // 阻塞队列
+    block_queue<string>* m_log_queue;   // 阻塞队列
     bool m_is_async;    // 是否同步标志位
-    // locker m_mutex;
+    locker m_mutex;
     int m_close_log;    // 关闭日志
 };
 
