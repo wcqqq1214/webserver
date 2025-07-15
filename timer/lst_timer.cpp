@@ -21,6 +21,7 @@ void sort_timer_lst::add_timer(util_timer *timer) {
     }
 
     if (!head) {
+        head = tail = timer;
         return;
     }
 
