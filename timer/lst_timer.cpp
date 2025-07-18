@@ -1,4 +1,5 @@
 #include "lst_timer.h"
+
 #include "../http/http_conn.h"
 
 sort_timer_lst::sort_timer_lst() {
@@ -15,7 +16,7 @@ sort_timer_lst::~sort_timer_lst() {
     }
 }
 
-void sort_timer_lst::add_timer(util_timer *timer) {
+void sort_timer_lst::add_timer(util_timer* timer) {
     if (!timer) {
         return;
     }
@@ -35,7 +36,7 @@ void sort_timer_lst::add_timer(util_timer *timer) {
     add_timer(timer, head);
 }
 
-void sort_timer_lst::adjust_timer(util_timer *timer) {
+void sort_timer_lst::adjust_timer(util_timer* timer) {
     if (!timer) {
         return;
     }
@@ -57,7 +58,7 @@ void sort_timer_lst::adjust_timer(util_timer *timer) {
     }
 }
 
-void sort_timer_lst::del_timer(util_timer *timer) {
+void sort_timer_lst::del_timer(util_timer* timer) {
     if (!timer) {
         return;
     }
@@ -109,7 +110,7 @@ void sort_timer_lst::tick() {
     }
 }
 
-void sort_timer_lst::add_timer(util_timer *timer, util_timer* lst_head) {
+void sort_timer_lst::add_timer(util_timer* timer, util_timer* lst_head) {
     util_timer* prev = lst_head;
     util_timer* tmp = prev->next;
     while (tmp) {
@@ -132,9 +133,7 @@ void sort_timer_lst::add_timer(util_timer *timer, util_timer* lst_head) {
     }
 }
 
-void Utils::init(int timeslot) {
-    m_TIMESLOT = timeslot;
-}
+void Utils::init(int timeslot) { m_TIMESLOT = timeslot; }
 
 // 对文件描述符设置非阻塞
 int Utils::setnonblocking(int fd) {
@@ -170,10 +169,10 @@ void Utils::sig_handler(int sig) {
     int msg = sig;
     send(u_pipefd[1], (char*)&msg, 1, 0);
     errno = save_errno;
-}   
+}
 
 // 设置信号函数
-void Utils::addsig(int sig, void (handler)(int), bool restart) {
+void Utils::addsig(int sig, void(handler)(int), bool restart) {
     struct sigaction sa;
     memset(&sa, '\0', sizeof(sa));
     sa.sa_handler = handler;
@@ -190,7 +189,7 @@ void Utils::timer_handler() {
     alarm(m_TIMESLOT);
 }
 
-void Utils::show_error(int connfd, const char *info) {
+void Utils::show_error(int connfd, const char* info) {
     send(connfd, info, strlen(info), 0);
     close(connfd);
 }
@@ -199,7 +198,7 @@ int* Utils::u_pipefd = 0;
 int Utils::u_epollfd = 0;
 
 class Utils;
-void cb_func(client_data *user_data) {
+void cb_func(client_data* user_data) {
     epoll_ctl(Utils::u_epollfd, EPOLL_CTL_DEL, user_data->sockfd, 0);
     assert(user_data);
     close(user_data->sockfd);

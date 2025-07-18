@@ -1,18 +1,19 @@
 #include "http_conn.h"
 
 #include <mysql/mysql.h>
+
 #include <fstream>
 
 // 定义 http 响应的一些状态信息
-const char *ok_200_title = "OK";
-const char *error_400_title = "Bad Request";
-const char *error_400_form = "Your request has bad syntax or is inherently impossible to satisfy.\n";
-const char *error_403_title = "Forbidden";
-const char *error_403_form = "You do not have permission to get file form this server.\n";
-const char *error_404_title = "Not Found";
-const char *error_404_form = "The requested file was not found on this server.\n";
-const char *error_500_title = "Internal Error";
-const char *error_500_form = "There was an unusual problem serving the request file.\n";
+const char* ok_200_title = "OK";
+const char* error_400_title = "Bad Request";
+const char* error_400_form = "Your request has bad syntax or is inherently impossible to satisfy.\n";
+const char* error_403_title = "Forbidden";
+const char* error_403_form = "You do not have permission to get file form this server.\n";
+const char* error_404_title = "Not Found";
+const char* error_404_form = "The requested file was not found on this server.\n";
+const char* error_500_title = "Internal Error";
+const char* error_500_form = "There was an unusual problem serving the request file.\n";
 
 locker m_lock;
 map<string, string> users;
@@ -28,7 +29,7 @@ int setnonblocking(int fd) {
     return old_option;
 }
 
-/** 
+/**
  * @brief 将内核事件表注册读事件，ET 模式，选择开启 EPOLLONESHOT
  */
 void addfd(int epollfd, int fd, bool one_shot, int TRIGMode) {
@@ -55,7 +56,7 @@ void addfd(int epollfd, int fd, bool one_shot, int TRIGMode) {
     setnonblocking(fd);
 }
 
-/** 
+/**
  * @brief 从内核时间表删除描述符
  */
 void removefd(int epollfd, int fd) {
@@ -63,7 +64,7 @@ void removefd(int epollfd, int fd) {
     close(fd);
 }
 
-/** 
+/**
  * @brief 将事件重置为 EPOLLONESHOT
  */
 void modfd(int epollfd, int fd, int ev, int TRIGMode) {
@@ -81,7 +82,7 @@ void modfd(int epollfd, int fd, int ev, int TRIGMode) {
 
 /**
  * @brief 初始化连接对象（带多个参数的版本）
- * 
+ *
  * @param sockfd        客户端套接字描述符
  * @param addr          客户端地址结构体
  * @param root          网站根目录路径
@@ -91,7 +92,8 @@ void modfd(int epollfd, int fd, int ev, int TRIGMode) {
  * @param passwd        数据库密码
  * @param sqlname       数据库名称
  */
-void http_conn::init(int sockfd, const sockaddr_in& addr, char* root, int TRIGMode, int close_log, string user, string passwd, string sqlname) {
+void http_conn::init(int sockfd, const sockaddr_in& addr, char* root, int TRIGMode, int close_log, string user,
+                     string passwd, string sqlname) {
     m_sockfd = sockfd;
     m_address = addr;
 
@@ -112,7 +114,7 @@ void http_conn::init(int sockfd, const sockaddr_in& addr, char* root, int TRIGMo
 
 /**
  * @brief 关闭客户端连接
- * 
+ *
  * @param real_close 是否实际关闭连接（true 表示关闭 socket，false 表示仅标记关闭）
  */
 void http_conn::close_conn(bool real_close) {
@@ -145,7 +147,7 @@ void http_conn::process() {
 
 /**
  * @brief 从客户端 socket 一次性读取数据到读缓冲区
- * 
+ *
  * 循环读取客户数据，直到无数据可读或对方关闭连接
  * 非阻塞 ET 工作模式下，需要一次性将数据读完
  *
@@ -167,7 +169,7 @@ bool http_conn::read_once() {
         }
 
         return true;
-    } else {    // ET 读取数据
+    } else {  // ET 读取数据
         while (true) {
             bytes_read = recv(m_sockfd, m_read_buf + m_read_idx, READ_BUFFER_SIZE - m_read_idx, 0);
             if (bytes_read == -1) {
@@ -186,7 +188,7 @@ bool http_conn::read_once() {
 
 /**
  * @brief 响应客户请求，将缓冲区中的数据写入 socket
- * 
+ *
  * @return 成功写入返回 true，写入失败或连接关闭返回 false
  */
 bool http_conn::write() {
@@ -208,7 +210,7 @@ bool http_conn::write() {
                 modfd(m_epollfd, m_sockfd, EPOLLOUT, m_TRIGMode);
                 return true;
             }
-            unmap();    // 释放内存映射
+            unmap();  // 释放内存映射
             return false;
         }
 
@@ -240,10 +242,10 @@ bool http_conn::write() {
 
 /**
  * @brief 初始化 MySQL 用户验证结果，加载用户账户信息到内存
- * 
+ *
  * @param connPool 数据库连接池对象指针
  */
-void http_conn::initmysql_result(connection_pool *connPool) {
+void http_conn::initmysql_result(connection_pool* connPool) {
     // 先从连接池中取一个连接
     MYSQL* mysql = NULL;
     connectionRAII mysqlconn(&mysql, connPool);
@@ -303,7 +305,7 @@ void http_conn::init() {
 
 /**
  * @brief 处理客户端发送的 HTTP 请求数据，解析请求行、请求头和请求体
- * 
+ *
  * @return HTTP_CODE 表示解析结果状态码，指示是否成功获取完整请求
  */
 http_conn::HTTP_CODE http_conn::process_read() {
@@ -311,21 +313,20 @@ http_conn::HTTP_CODE http_conn::process_read() {
     HTTP_CODE ret = NO_REQUEST;
     char* text = 0;
 
-    while ((m_check_state == CHECK_STATE_CONTENT && line_status == LINE_OK) || ((line_status = parse_line()) == LINE_OK)) {
+    while ((m_check_state == CHECK_STATE_CONTENT && line_status == LINE_OK) ||
+           ((line_status = parse_line()) == LINE_OK)) {
         text = get_line();
         m_start_line = m_checked_idx;
         LOG_INFO("%s", text);
         switch (m_check_state) {
-            case CHECK_STATE_REQUESTLINE:
-            {
+            case CHECK_STATE_REQUESTLINE: {
                 ret = parse_request_line(text);
                 if (ret == BAD_REQUEST) {
                     return BAD_REQUEST;
                 }
                 break;
             }
-            case CHECK_STATE_HEADER:
-            {
+            case CHECK_STATE_HEADER: {
                 ret = parse_headers(text);
                 if (ret == BAD_REQUEST) {
                     return BAD_REQUEST;
@@ -334,8 +335,7 @@ http_conn::HTTP_CODE http_conn::process_read() {
                 }
                 break;
             }
-            case CHECK_STATE_CONTENT:
-            {
+            case CHECK_STATE_CONTENT: {
                 ret = parse_content(text);
                 if (ret == GET_REQUEST) {
                     return do_request();
@@ -352,14 +352,13 @@ http_conn::HTTP_CODE http_conn::process_read() {
 
 /**
  * @brief 根据解析结果构造 HTTP 响应报文，并写入写缓冲区
- * 
+ *
  * @param ret 由 process_read 返回的 HTTP 请求处理结果状态码
  * @return 成功构造响应并准备发送返回 true，否则返回 false
  */
 bool http_conn::process_write(HTTP_CODE ret) {
     switch (ret) {
-        case INTERNAL_ERROR:
-        {
+        case INTERNAL_ERROR: {
             add_status_line(500, error_500_title);
             add_headers(strlen(error_500_form));
             if (!add_content(error_500_form)) {
@@ -367,8 +366,7 @@ bool http_conn::process_write(HTTP_CODE ret) {
             }
             break;
         }
-        case BAD_REQUEST:
-        {
+        case BAD_REQUEST: {
             add_status_line(404, error_404_title);
             add_headers(strlen(error_404_form));
             if (!add_content(error_404_form)) {
@@ -376,8 +374,7 @@ bool http_conn::process_write(HTTP_CODE ret) {
             }
             break;
         }
-        case FORBIDDEN_REQUEST:
-        {
+        case FORBIDDEN_REQUEST: {
             add_status_line(403, error_403_title);
             add_headers(strlen(error_403_form));
             if (!add_content(error_403_form)) {
@@ -385,8 +382,7 @@ bool http_conn::process_write(HTTP_CODE ret) {
             }
             break;
         }
-        case FILE_REQUEST:
-        {   
+        case FILE_REQUEST: {
             add_status_line(200, ok_200_title);
             if (m_file_stat.st_size != 0) {
                 add_headers(m_file_stat.st_size);
@@ -417,7 +413,7 @@ bool http_conn::process_write(HTTP_CODE ret) {
 
 /**
  * @brief 解析 HTTP 请求行，获得请求方法，目标 url 及 http 版本号
- * 
+ *
  * @param text 指向当前解析行的起始位置
  * @return HTTP_CODE 返回解析状态码，指示是否成功解析请求行
  */
@@ -441,7 +437,7 @@ http_conn::HTTP_CODE http_conn::parse_request_line(char* text) {
     } else {
         return BAD_REQUEST;
     }
-    
+
     m_version = strpbrk(m_url, " \t");
     if (!m_version) {
         return BAD_REQUEST;
@@ -481,7 +477,7 @@ http_conn::HTTP_CODE http_conn::parse_request_line(char* text) {
 
 /**
  * @brief 解析 HTTP 请求头字段
- * 
+ *
  * @param text 指向当前解析行的起始位置
  * @return HTTP_CODE 返回解析状态码，指示是否成功解析请求头
  */
@@ -506,8 +502,7 @@ http_conn::HTTP_CODE http_conn::parse_headers(char* text) {
         text += 5;
         text += strspn(text, " \t");
         m_host = text;
-    }
-    else {
+    } else {
         LOG_INFO("Unknown header: %s", text);
     }
     return NO_REQUEST;
@@ -515,7 +510,7 @@ http_conn::HTTP_CODE http_conn::parse_headers(char* text) {
 
 /**
  * @brief 解析 HTTP 请求体内容
- * 
+ *
  * @param text 指向当前解析行的起始位置
  * @return HTTP_CODE 返回解析状态码，指示是否成功解析完整请求体
  */
@@ -531,7 +526,7 @@ http_conn::HTTP_CODE http_conn::parse_content(char* text) {
 
 /**
  * @brief 执行 HTTP 请求的实际处理逻辑
- * 
+ *
  * @return HTTP_CODE 返回请求处理结果状态码
  */
 http_conn::HTTP_CODE http_conn::do_request() {
@@ -579,7 +574,7 @@ http_conn::HTTP_CODE http_conn::do_request() {
             strcat(sql_insert, "', '");
             strcat(sql_insert, password);
             strcat(sql_insert, "')");
-            
+
             if (users.find(name) == users.end()) {
                 m_lock.lock();
                 int res = mysql_query(mysql, sql_insert);
@@ -657,7 +652,7 @@ http_conn::HTTP_CODE http_conn::do_request() {
     }
 
     // LOG_INFO("m_real_file: %s", m_real_file);
-    
+
     int fd = open(m_real_file, O_RDONLY);
     // mmap : 将文件直接映射到进程的虚拟内存空间中
     // PROT_READ : 这块内存区域是可读的
@@ -669,7 +664,7 @@ http_conn::HTTP_CODE http_conn::do_request() {
 
 /**
  * @brief 解析一行 HTTP 请求数据，判断该行是否完整（从状态机）
- * 
+ *
  * @return LINE_STATUS 表示当前行的解析状态（LINE_OK / LINE_BAD / LINE_OPEN）
  */
 http_conn::LINE_STATUS http_conn::parse_line() {
@@ -681,11 +676,11 @@ http_conn::LINE_STATUS http_conn::parse_line() {
             if ((m_checked_idx + 1) == m_read_idx) {
                 return LINE_OPEN;
             }
-            // '\r' 的下一个字符是 '\n'，找到了完整的行 
+            // '\r' 的下一个字符是 '\n'，找到了完整的行
             else if (m_read_buf[m_checked_idx + 1] == '\n') {
                 // 将 '\r' 和 '\n' 替换为字符串结束符 '\0'
                 m_read_buf[m_checked_idx++] = '\0';
-                m_read_buf[m_checked_idx++] = '\0'; 
+                m_read_buf[m_checked_idx++] = '\0';
                 return LINE_OK;
             }
             return LINE_BAD;
@@ -717,7 +712,7 @@ void http_conn::unmap() {
 
 /**
  * @brief 向写缓冲区添加格式化响应数据（支持类似 printf 的格式化方式）
- * 
+ *
  * @param format 格式字符串
  * @return 成功添加返回 true，缓冲区满或出错返回 false
  */
@@ -746,17 +741,15 @@ bool http_conn::add_response(const char* format, ...) {
 
 /**
  * @brief 添加正文内容到响应中
- * 
+ *
  * @param content 要添加的正文字符串
  * @return 成功添加返回 true，缓冲区满或出错返回 false
  */
-bool http_conn::add_content(const char* content) {
-    return add_response("%s", content);
-}
+bool http_conn::add_content(const char* content) { return add_response("%s", content); }
 
 /**
  * @brief 添加响应状态行（HTTP 协议版本 + 状态码 + 状态描述）
- * 
+ *
  * @param status 状态码（如 200、404）
  * @param title 状态描述（如 OK、Not Found）
  * @return 成功添加返回 true，失败返回 false
@@ -767,7 +760,7 @@ bool http_conn::add_status_line(int status, const char* title) {
 
 /**
  * @brief 添加 HTTP 响应头
- * 
+ *
  * @param content_length 正文长度
  * @return 成功添加返回 true，失败返回 false
  */
@@ -777,37 +770,29 @@ bool http_conn::add_headers(int content_len) {
 
 /**
  * @brief 添加 Content-Type 到响应头，表示响应正文的 MIME 类型
- * 
+ *
  * @return 成功添加返回 true，失败返回 false
  */
-bool http_conn::add_content_type() {
-    return add_response("Content-Type:%s\r\n", "text/html");
-}
+bool http_conn::add_content_type() { return add_response("Content-Type:%s\r\n", "text/html"); }
 
 /**
  * @brief 添加 Content-Length 字段到响应头
- * 
+ *
  * @param content_length 正文长度
  * @return 成功添加返回 true，失败返回 false
  */
-bool http_conn::add_content_length(int content_len) {
-    return add_response("Content-Length:%d\r\n", content_len);
-}
+bool http_conn::add_content_length(int content_len) { return add_response("Content-Length:%d\r\n", content_len); }
 
 /**
  * @brief 添加 Connection 字段到响应头，控制是否保持连接（keep-alive 或 close）
- * 
+ *
  * @return 成功添加返回 true，失败返回 false
  */
-bool http_conn::add_linger() {
-    return add_response("Connection:%s\r\n", (m_linger == true) ? "keep-alive" : "close");
-}
+bool http_conn::add_linger() { return add_response("Connection:%s\r\n", (m_linger == true) ? "keep-alive" : "close"); }
 
 /**
  * @brief 添加空行分隔符，标志 HTTP 头部结束
- * 
+ *
  * @return 成功添加返回 true，失败返回 false
  */
-bool http_conn::add_blank_line() {
-    return add_response("%s", "\r\n");
-}
+bool http_conn::add_blank_line() { return add_response("%s", "\r\n"); }

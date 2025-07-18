@@ -11,7 +11,8 @@ connection_pool* connection_pool::GetInstance() {
 }
 
 // 构造初始化
-void connection_pool::init(string url, string User, string Password, string DatabaseName, int Port, int MaxConn, int close_log) {
+void connection_pool::init(string url, string User, string Password, string DatabaseName, int Port, int MaxConn,
+                           int close_log) {
     m_url = url;
     m_Port = Port;
     m_User = User;
@@ -27,7 +28,8 @@ void connection_pool::init(string url, string User, string Password, string Data
             LOG_ERROR("MySQL Error");
             exit(1);
         }
-        conn = mysql_real_connect(conn, url.c_str(), User.c_str(), Password.c_str(), DatabaseName.c_str(), Port, NULL, 0);
+        conn =
+            mysql_real_connect(conn, url.c_str(), User.c_str(), Password.c_str(), DatabaseName.c_str(), Port, NULL, 0);
 
         if (conn == NULL) {
             LOG_ERROR("MySQL Error");
@@ -66,7 +68,7 @@ MYSQL* connection_pool::GetConnection() {
 }
 
 // 释放当前使用的连接
-bool connection_pool::ReleaseConnection(MYSQL *conn) {
+bool connection_pool::ReleaseConnection(MYSQL* conn) {
     if (NULL == conn) {
         return false;
     }
@@ -74,10 +76,10 @@ bool connection_pool::ReleaseConnection(MYSQL *conn) {
     lock.lock();
 
     connList.push_back(conn);
-    
+
     ++m_FreeConn;
     --m_CurConn;
-    
+
     lock.unlock();
 
     reserve.post();
@@ -102,13 +104,9 @@ void connection_pool::DestroyPool() {
 }
 
 // 获取当前空闲的连接数
-int connection_pool::GetFreeConn() {
-    return this->m_FreeConn;
-}
+int connection_pool::GetFreeConn() { return this->m_FreeConn; }
 
-connection_pool::~connection_pool() {
-    DestroyPool();
-}
+connection_pool::~connection_pool() { DestroyPool(); }
 
 connectionRAII::connectionRAII(MYSQL** SQL, connection_pool* connPool) {
     *SQL = connPool->GetConnection();
@@ -117,6 +115,4 @@ connectionRAII::connectionRAII(MYSQL** SQL, connection_pool* connPool) {
     poolRAII = connPool;
 }
 
-connectionRAII::~connectionRAII() {
-    poolRAII->ReleaseConnection(connRAII);
-}
+connectionRAII::~connectionRAII() { poolRAII->ReleaseConnection(connRAII); }

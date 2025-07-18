@@ -10,7 +10,7 @@ WebServer::WebServer() {
     char root[28] = "/home/ubuntu/webserver/root";
     m_root = (char*)malloc(strlen(server_path) + strlen(root) + 1);
     strcpy(m_root, server_path);
-    strcpy(m_root, root);   
+    strcpy(m_root, root);
 
     // 定时器
     users_timer = new client_data[MAX_FD];
@@ -26,7 +26,8 @@ WebServer::~WebServer() {
     delete[] m_pool;
 }
 
-void WebServer::init(int port, string user, string password, string databaseName, int log_write, int opt_linger, int trigmode, int sql_num, int thread_num, int close_log, int actor_model) {
+void WebServer::init(int port, string user, string password, string databaseName, int log_write, int opt_linger,
+                     int trigmode, int sql_num, int thread_num, int close_log, int actor_model) {
     m_port = port;
     m_user = user;
     m_password = password;
@@ -49,7 +50,7 @@ void WebServer::sql_pool() {
     // 初始化数据库连接池
     m_connPool = connection_pool::GetInstance();
     m_connPool->init("localhost", m_user, m_password, m_databaseName, 3306, m_sql_num, m_close_log);
-    
+
     // 初始化数据库读取表
     users->initmysql_result(m_connPool);
 }
@@ -63,7 +64,7 @@ void WebServer::log_write() {
             Log::get_instance()->init("./ServerLog", m_close_log, 2000, 800000, 0);
         }
     }
-}   
+}
 
 void WebServer::trig_mode() {
     // LT + LT
@@ -140,7 +141,7 @@ void WebServer::eventListen() {
     // 工具类，信号和描述符基础操作
     Utils::u_pipefd = m_pipefd;
     Utils::u_epollfd = m_epollfd;
-}   
+}
 
 void WebServer::eventLoop() {
     bool timeout = false;
@@ -166,7 +167,7 @@ void WebServer::eventLoop() {
                 // 服务器端关闭连接，移除对应的定时器
                 util_timer* timer = users_timer[sockfd].timer;
                 deal_timer(timer, sockfd);
-            } else if ((sockfd == m_pipefd[0]) && (events[i].events & EPOLLIN)) {  
+            } else if ((sockfd == m_pipefd[0]) && (events[i].events & EPOLLIN)) {
                 // 处理信号
                 bool flag = deal_with_signal(timeout, stop_server);
                 if (false == flag) {
@@ -240,7 +241,7 @@ bool WebServer::deal_clientData() {
             LOG_ERROR("%s", "Internal server busy");
             return false;
         }
-        
+
         timer(connfd, client_address);
     } else {
         while (true) {
@@ -274,13 +275,11 @@ bool WebServer::deal_with_signal(bool& timeout, bool& stop_server) {
     } else {
         for (int i = 0; i < ret; i++) {
             switch (signals[i]) {
-                case SIGALRM:
-                {
+                case SIGALRM: {
                     timeout = true;
                     break;
                 }
-                case SIGTERM:
-                {
+                case SIGTERM: {
                     stop_server = true;
                     break;
                 }
